@@ -11,6 +11,9 @@ export default function Home() {
         <Link href="/login" className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
           Login
         </Link>
+        <Link href="/dashboard" className="bg-teal-500 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded">
+          Dashborad
+        </Link>
       </div>
     </main>
   );

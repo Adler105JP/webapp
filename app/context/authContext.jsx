@@ -44,7 +44,6 @@ export function AuthPorvider ({ children })
             }
             localStorage.setItem("user", JSON.stringify(userData))
             setUser(userData)
-            console.log(res)
             router.push("/dashboard")
         }
         catch(err)
