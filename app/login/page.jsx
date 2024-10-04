@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useState } from 'react'
+import { useState } from 'react'
 import { useSession } from '../context/authContext'
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
@@ -36,12 +36,12 @@ export default function Login () {
         <form onSubmit={handleSubmit} className="w-full max-w-xs">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email / Username</Label>
-              <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+              <Label htmlFor="username">Email / Username</Label>
+              <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Password</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required/>
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required/>
             </div>
             <Button type="submit" className="w-full">Login</Button>
           </div> 
