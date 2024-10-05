@@ -21,6 +21,9 @@ export function AuthPorvider ({ children })
     const Login = async (username, password) => {
         try
         {
+            localStorage.removeItem("token")
+            localStorage.removeItem("user")
+            
             const dataReq = new FormData()
             dataReq.append("username", username)
             dataReq.append("password", password)

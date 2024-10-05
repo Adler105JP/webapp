@@ -32,12 +32,8 @@ export default function Dashboard() {
 
     return (
     <ProtectedRoute>
-        <button onClick={Logout} className="px-4 py-2 font-bold text-white bg-red-500 rounded-full hover:bg-red-700 focus:outline-none focus:shadow-outline">
-            Logout
-        </button>
         <div className="container mx-auto py-10">
         <h1 className="text-3xl font-bold mb-6">Log Dashboard</h1>
-        <p className="mb-4">Welcome, {user ? user.username : null}!</p>
         
         <div className="flex justify-between items-center mb-6">
             <Popover>

@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "@/app/context/authContext"
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children, NOTAuthRequired}) {
     const { user } = useSession()
     const router = useRouter()
 
@@ -14,5 +14,8 @@ export default function ProtectedRoute({ children }) {
             router.replace("/")
     }, [router])
     
+    if (NOTAuthRequired)
+        return children
+
     return user ? children : null
 }
