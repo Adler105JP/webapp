@@ -23,7 +23,7 @@ export function AuthPorvider ({ children })
         {
             localStorage.removeItem("token")
             localStorage.removeItem("user")
-            
+
             const dataReq = new FormData()
             dataReq.append("username", username)
             dataReq.append("password", password)
@@ -43,7 +43,8 @@ export function AuthPorvider ({ children })
             const userData = {
                 username: res.data.username,
                 first_name: res.data.first_name,
-                last_name: res.data.last_name
+                last_name: res.data.last_name,
+                id: res.data.id
             }
             localStorage.setItem("user", JSON.stringify(userData))
             setUser(userData)
