@@ -26,8 +26,8 @@ export default function Dashboard() {
     const [date, setDate] = useState()
     const [logs, setLogs] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
-    const [sortOrder, setSortOrder] = useState('asc')
-    const { user, Logout } = useSession()
+    const [sortOrder, setSortOrder] = useState('desc')
+    const { user, Logout, ValToken} = useSession()
     const router = useRouter()
 
     const [sortField, setSortField] = useState('timestamp')
@@ -53,6 +53,9 @@ export default function Dashboard() {
     const [Log_severity, setLogSeverity] = useState()
     const [Log_source, setLogSource] = useState()
 
+    const [selectIdLog, setIdSelectLog] = useState()
+    const [isUpdate, setEditMode] = useState(false)
+
     const fetchLogs = async () => {
         if (user)
         {
@@ -63,8 +66,10 @@ export default function Dashboard() {
                 setLogs(response.data)
             }
             catch (err)
-            {
+            { 
                 console.error("Error fetching logs:", err);
+                if (err.status == 401 || err.status == 403)
+                    Logout()
             }
         }
         else
@@ -72,6 +77,7 @@ export default function Dashboard() {
     }
 
     useEffect(() => {
+        ValToken()
         fetchLogs()
     }, [user, baseUrl, Logout])
 
@@ -131,27 +137,33 @@ export default function Dashboard() {
                     "source": Log_source,
                     "message": Log_message
                 }
-                console.log(payload)
 
                 axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("token")}`
-                const response = await axios.post(
-                    `${baseUrl}/api/log/${user.id}`,
-                    payload,
-                    {
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }
-                )
+                const response = isUpdate ? await axios.put(
+                        `${baseUrl}/api/log/${selectIdLog}/user/${user.id}`,
+                        payload,
+                        {
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        }) : await axios.post(
+                        `${baseUrl}/api/log/${user.id}`,
+                        payload,
+                        {
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        })
 
-                if (response.status == 201)
+                if (response.status == 201 || response.status == 202)
                 {
-                    closePopupWin()
                     await fetchLogs()
+                    closePopupWin()
                 }
                 else
                 {
-                    console.log(response)
+                    console.error(response)
+                    closePopupWin()
                     alert("Unexpected error!")
                 }
             }
@@ -162,6 +174,56 @@ export default function Dashboard() {
         }
 
         request()
+    }
+
+    const handleNewLog = () => {
+        setLogTimestamp()
+        setLogMessage()
+        setLogSeverity()
+        setLogSource()
+
+        setEditMode(false)
+
+        openPopupWin()
+    }
+
+    const handleEdit = (log) => {
+
+        setLogTimestamp(log.timestamp)
+        setLogMessage(log.message)
+        setLogSeverity(LabelSeverity[log.severity])
+        setLogSource(log.source)
+        setIdSelectLog(log.id)
+
+        setEditMode(true)
+
+        openPopupWin()
+    };
+
+    const deleteLog = async () => {
+        try
+        {
+            axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("token")}`
+            const responce = await axios.delete(`${baseUrl}/api/log/${selectIdLog}/user/${user.id}`)
+
+            if (responce.status == 202)
+            {
+                await fetchLogs()
+                closeModal()
+                setIdSelectLog(null)
+            }
+            else
+            {
+                console.error(responce)
+                closeModal()
+                setIdSelectLog(null)
+                alert("Unexpected error!")
+            }
+        }
+        catch (err)
+        {
+            console.error("Error Api:", err)
+        }
     }
 
     return (
@@ -182,7 +244,7 @@ export default function Dashboard() {
             </PopoverContent>
             </Popover>
             <Input type="text" placeholder="Search logs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-[300px]"/>
-            <Button className="mr-2 px-5" onClick={openPopupWin}><PlusIcon className="mr-2"/>New log</Button>
+            <Button className="mr-2 px-5" onClick={handleNewLog}><PlusIcon className="mr-2"/>New log</Button>
         </div>
         
         <div className="rounded-md border">
@@ -228,8 +290,8 @@ export default function Dashboard() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent > 
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem><PenIcon className="mr-2 h-4 w-4"/>Update</DropdownMenuItem>
-                                <DropdownMenuItem onClick={openModal}><Trash2Icon className="mr-2 h-4 w-4"/> Delete</DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {handleEdit(log)}}><PenIcon className="mr-2 h-4 w-4"/>Update</DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {openModal(); setIdSelectLog(log.id)}}><Trash2Icon className="mr-2 h-4 w-4"/> Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </TableCell>
@@ -319,7 +381,7 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardFooter>
                     <Button className="px-10 mx-5" onClick={closeModal}>Cancel</Button>
-                    <Button className="bg-red-700 px-10 mx-5" >Delete</Button>
+                    <Button className="bg-red-700 px-10 mx-5" onClick={deleteLog} >Delete</Button>
                 </CardFooter>
             </Card>
         </Modal>

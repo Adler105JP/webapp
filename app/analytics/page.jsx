@@ -18,7 +18,7 @@ const severityLabels = {
 
 export default function ChartPage() {
     const [severityData, setSeverityData] = useState({ LOW: 0, NORMAL: 0, HIGH: 0, IMMEDIATE: 0 });
-    const { user, Logout } = useSession()
+    const { user, Logout, ValToken } = useSession()
 
     
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
@@ -49,9 +49,9 @@ export default function ChartPage() {
             else
                 Logout()
         }
-
+        ValToken()
         fetchLogs()
-    }, [user, baseUrl, Logout])
+    }, [user, baseUrl, Logout, ValToken])
 
     const data = {
         labels: ['LOW', 'NORMAL', 'HIGH', 'IMMEDIATE'],

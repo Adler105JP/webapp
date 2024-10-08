@@ -12,10 +12,27 @@ export function AuthPorvider ({ children })
     const [error, setError] = useState(null)
     const router = useRouter()
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    const ValToken = async () => {
+        const token = localStorage.getItem("token")
+        if (token)
+        {
+            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+            const err = await axios.get(`${baseUrl}/user/session_valid`)
+
+            if (err.status == 401 || err.status == 403)
+                Logout()
+        }
+    }
+
     useEffect(() => {
         const storedUser = localStorage.getItem("user")
         if (storedUser)
             setUser(JSON.parse(storedUser))
+
+        ValToken()
+        
     }, [])
 
     const Login = async (username, password) => {
@@ -23,12 +40,11 @@ export function AuthPorvider ({ children })
         {
             localStorage.removeItem("token")
             localStorage.removeItem("user")
+            setError()
 
             const dataReq = new FormData()
             dataReq.append("username", username)
             dataReq.append("password", password)
-
-            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
             const res = await axios.post(
                 `${baseUrl}/user/login`,
@@ -63,6 +79,7 @@ export function AuthPorvider ({ children })
     }
 
     const Logout = () => {
+        setError()
         setUser(null)
         localStorage.removeItem("token")
         localStorage.removeItem("user")
@@ -71,7 +88,7 @@ export function AuthPorvider ({ children })
     }
 
     return (
-        <AuthContext.Provider value={{user, Login, Logout, error}}>
+        <AuthContext.Provider value={{user, Login, Logout, error, ValToken}}>
             {children}
         </AuthContext.Provider>
     )
