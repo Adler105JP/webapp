@@ -28,8 +28,10 @@ export function AuthPorvider ({ children })
             dataReq.append("username", username)
             dataReq.append("password", password)
 
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
             const res = await axios.post(
-                "http://localhost:8000/user/login",
+                `${baseUrl}/user/login`,
                 dataReq,
                 {
                     headers: {

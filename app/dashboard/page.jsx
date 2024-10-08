@@ -1,34 +1,168 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { useSession } from "@/app/context/authContext"
 import ProtectedRoute from '@/components/auth/protectedRoute'
+import axios from 'axios'
+import { useRouter } from "next/navigation"
 
-import { CalendarIcon, SearchIcon } from "lucide-react"
-import { format } from "date-fns"
+import { CalendarIcon, ArrowUpIcon, ArrowDownIcon, Trash2Icon, PenIcon, PlusIcon} from "lucide-react"
+import { format, isSameDay } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-
-//Demo data Emulare responce of API
-const logs = [
-    { id: 1, timestamp: "2023-05-01T12:00:00Z", level: "INFO", message: "User logged in" },
-    { id: 2, timestamp: "2023-05-01T12:05:00Z", level: "WARNING", message: "High CPU usage detected" },
-    { id: 3, timestamp: "2023-05-01T12:10:00Z", level: "ERROR", message: "Database connection failed" },
-    { id: 4, timestamp: "2023-05-01T12:15:00Z", level: "INFO", message: "Backup completed successfully" },
-    { id: 5, timestamp: "2023-05-01T12:20:00Z", level: "DEBUG", message: "Cache cleared" },
-  ]
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { DotsHorizontalIcon } from '@radix-ui/react-icons'
+import Modal from '@/components/ui/modal'
+import { Card, CardDescription, CardHeader, CardTitle, CardFooter, CardContent } from '@/components/ui/card'
+import { Label } from '@radix-ui/react-label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 
 export default function Dashboard() {
     const [date, setDate] = useState()
+    const [logs, setLogs] = useState([])
     const [searchQuery, setSearchQuery] = useState("")
+    const [sortOrder, setSortOrder] = useState('asc')
     const { user, Logout } = useSession()
     const router = useRouter()
+
+    const [sortField, setSortField] = useState('timestamp')
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5; // Set how many logs per page
+    const totalPages = Math.ceil(logs.length / itemsPerPage);
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+    const LabelSeverity = ["LOW", "NORMAL", "HIGTH", "IMMEDIATE"]
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPopupWinOpen, setIsPopupWinOpen] = useState(false)
+
+    const openModal = () => setIsModalOpen(true)
+    const closeModal = () => setIsModalOpen(false)
+
+    const openPopupWin = () => setIsPopupWinOpen(true)
+    const closePopupWin = () => setIsPopupWinOpen(false)
+
+    const [Log_timestamp, setLogTimestamp] = useState()
+    const [Log_message, setLogMessage] = useState()
+    const [Log_severity, setLogSeverity] = useState()
+    const [Log_source, setLogSource] = useState()
+
+    const fetchLogs = async () => {
+        if (user)
+        {
+            try
+            {
+                axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("token")}`
+                const response = await axios.get(`${baseUrl}/api/logs/${user.id}`)
+                setLogs(response.data)
+            }
+            catch (err)
+            {
+                console.error("Error fetching logs:", err);
+            }
+        }
+        else
+            Logout()
+    }
+
+    useEffect(() => {
+        fetchLogs()
+    }, [user, baseUrl, Logout])
+
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleSort = (field) => {
+        const isAsc = sortField === field && sortOrder === 'asc';
+        setSortOrder(isAsc ? 'desc' : 'asc');
+        setSortField(field);
+    }
+
+    const sortedLogs = [...logs].sort((a, b) => {
+        let aField = a[sortField];
+        let bField = b[sortField];
+
+        if (sortField === 'timestamp') {
+            aField = new Date(aField);
+            bField = new Date(bField);
+        }
+
+        if (aField < bField) return sortOrder === 'asc' ? -1 : 1;
+        if (aField > bField) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    })  
+
+    const filteredLogs = sortedLogs.filter((log) => {
+        const matchesDate = date ? isSameDay(new Date(log.timestamp), date) : true;
+        const matchesQuery = searchQuery ? log.message.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+        const matchesStates = true
+        return matchesDate && matchesQuery && matchesStates;
+    });
+
+    const currentLogs = filteredLogs.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+
+        const request = async () => {
+            try
+            {
+                const payload = {
+                    "timestamp": Log_timestamp,
+                    "severity": LabelSeverity.indexOf(Log_severity),
+                    "source": Log_source,
+                    "message": Log_message
+                }
+                console.log(payload)
+
+                axios.defaults.headers.common["Authorization"] = `Bearer ${localStorage.getItem("token")}`
+                const response = await axios.post(
+                    `${baseUrl}/api/log/${user.id}`,
+                    payload,
+                    {
+                        headers: {
+                            "Content-Type": "application/json"
+                        }
+                    }
+                )
+
+                if (response.status == 201)
+                {
+                    closePopupWin()
+                    await fetchLogs()
+                }
+                else
+                {
+                    console.log(response)
+                    alert("Unexpected error!")
+                }
+            }
+            catch(err)
+            {
+                console.error("Error Api:", err)
+            }
+        }
+
+        request()
+    }
 
     return (
     <ProtectedRoute>
@@ -47,42 +181,67 @@ export default function Dashboard() {
                 <Calendar  mode="single" selected={date} onSelect={setDate} initialFocus />
             </PopoverContent>
             </Popover>
-            
-            <div className="flex items-center space-x-2">
             <Input type="text" placeholder="Search logs..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-[300px]"/>
-            <Button size="icon">
-                <SearchIcon className="h-4 w-4" />
-                <span className="sr-only">Search</span>
-            </Button>
-            </div>
+            <Button className="mr-2 px-5" onClick={openPopupWin}><PlusIcon className="mr-2"/>New log</Button>
         </div>
         
         <div className="rounded-md border">
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Level</TableHead>
+                <TableHead>
+                    <Button onClick={() => handleSort('timestamp')} variant="ghost">
+                        Timestamp {sortField === 'timestamp' && (sortOrder === 'asc' ? <ArrowUpIcon className="h-4 w-4"/> : <ArrowDownIcon className="h-4 w-4"/>)}
+                    </Button>
+                </TableHead>
                 <TableHead>Message</TableHead>
+                <TableHead>
+                    <Button onClick={() => handleSort('severity')} variant="ghost">
+                        Severity {sortField === 'severity' && (sortOrder === 'asc' ? <ArrowUpIcon className="h-4 w-4"/> : <ArrowDownIcon className="h-4 w-4"/>)}
+                    </Button>
+                </TableHead>
+                <TableHead>Source</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {logs.map((log) => (
+                {currentLogs.length > 0 ? currentLogs.map((log) => (
                 <TableRow key={log.id}>
                     <TableCell>{new Date(log.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>{log.message}</TableCell>
                     <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        log.level === "INFO" ? "bg-blue-100 text-blue-800" :
-                        log.level === "WARNING" ? "bg-yellow-100 text-yellow-800" :
-                        log.level === "ERROR" ? "bg-red-100 text-red-800" :
+                        log.severity === 1 ? "bg-blue-100 text-blue-800" :
+                        log.severity === 2 ? "bg-yellow-100 text-yellow-800" :
+                        log.severity === 3 ? "bg-red-100 text-red-800" :
                         "bg-gray-100 text-gray-800"
                     }`}>
-                        {log.level}
+                        {LabelSeverity[log.severity]}
                     </span>
                     </TableCell>
-                    <TableCell>{log.message}</TableCell>
+                    <TableCell>{log.source}</TableCell>
+                    <TableCell>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger>
+                                <Button variant="ghost" alt="Actions">
+                                    <DotsHorizontalIcon className="h-4 w-4"/>
+                                </Button> 
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent > 
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem><PenIcon className="mr-2 h-4 w-4"/>Update</DropdownMenuItem>
+                                <DropdownMenuItem onClick={openModal}><Trash2Icon className="mr-2 h-4 w-4"/> Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </TableCell>
                 </TableRow>
-                ))}
+                )) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center">
+                        No logs found.
+                        </TableCell>
+                    </TableRow>
+                    )
+                }
             </TableBody>
             </Table>
         </div>
@@ -90,18 +249,80 @@ export default function Dashboard() {
         <div className="flex justify-between items-center mt-4">
             <div className="flex items-center space-x-2">
             <p className="text-sm text-gray-500">
-                Showing 1 to 5 of 5 results
+                Showing {currentLogs.length > 0 ? ((currentPage - 1) * itemsPerPage + 1) : 0} to {Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length} results
             </p>
             </div>
             <div className="flex items-center space-x-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={goToPreviousPage} disabled={currentPage === 1}>
                 Previous
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={goToNextPage} disabled={currentPage === totalPages}>
                 Next
             </Button>
             </div>
         </div>
+        <Modal isOpen={isPopupWinOpen}>
+            <Card> 
+                <form onSubmit={handleSubmit}>
+                    <CardHeader>
+                        <CardTitle>Log</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="timestamp">Timestamp</Label>
+                                <Input type="datetime-local" id="timestamp" value={Log_timestamp} onChange={(e) => {setLogTimestamp(e.target.value)}}/>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="message">Message</Label>
+                                <Input type="text" id="message" value={Log_message} onChange={(e) => {setLogMessage(e.target.value)}}/>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="severity">Severity</Label>
+                                <Select value={Log_severity} onValueChange={setLogSeverity}>
+                                    <SelectTrigger id="severity">
+                                        <SelectValue placeholder="Select level of severity"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {LabelSeverity.map((value, index) => (
+                                        <SelectItem key={index} value={value}>
+                                            {value}
+                                        </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="source">Source</Label>
+                                <Input type="text" id="source" value={Log_source} onChange={(e) => {setLogSource(e.target.value)}}/>
+                            </div>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button className="px-10 mx-5" onClick={closePopupWin}>Cancel</Button>
+                        <Button className="bg-blue-700 px-10 mx-5" type="submit" >Accept</Button>
+                    </CardFooter>
+                </form>
+            </Card>
+        </Modal>
+        <Modal isOpen={isModalOpen}>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Delete Record</CardTitle>
+                    <CardDescription>This action will delete permanently the record</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                    <Button className="px-10 mx-5" onClick={closeModal}>Cancel</Button>
+                    <Button className="bg-red-700 px-10 mx-5" >Delete</Button>
+                </CardFooter>
+            </Card>
+        </Modal>
         </div>
     </ProtectedRoute>
     )

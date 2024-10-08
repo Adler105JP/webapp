@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, User, Settings, LogOut } from "lucide-react"
+import { Menu, LogOut } from "lucide-react"
 
 import ProtectedRoute from "../auth/protectedRoute"
 import NavigationBar from "./nav_bar"

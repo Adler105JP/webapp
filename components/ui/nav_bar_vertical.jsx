@@ -10,7 +10,6 @@ export default function NavigationBar_Vertical() {
         <Link className="transition-colors hover:text-foreground/80 text-foreground" href="/">Home</Link>
         <Link className="transition-colors hover:text-foreground/80 text-foreground" href="/dashboard">Dashboard</Link>
         <Link className="transition-colors hover:text-foreground/80 text-foreground" href="/analytics">Analytics</Link>
-        <Link className="transition-colors hover:text-foreground/80 text-foreground" href="/reports">Reports</Link>
       </nav>
       </ProtectedRoute>
     )
