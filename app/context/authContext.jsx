@@ -18,8 +18,14 @@ export function AuthPorvider ({ children })
         const token = localStorage.getItem("token")
         if (token)
         {
-            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
-            const err = await axios.get(`${baseUrl}/user/session_valid`)
+            //axios.defaults.headers.common["Authorization"] = `Bearer ${token}`
+            const err = await axios.get(
+                `${baseUrl}/user/session_valid`,
+                {
+                    headers: {Authorization: `Bearer ${token}`},
+                    validateStatus: () => true
+                }
+            )
 
             if (err.status == 401 || err.status == 403)
                 Logout()

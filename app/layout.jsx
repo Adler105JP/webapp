@@ -2,6 +2,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { AuthPorvider } from "./context/authContext";
 import DashboardHeader from "@/components/ui/header";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,19 +16,21 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Dashborad",
-  description: "System from administration of logs",
+  title: "NeoTech Platform",
+  description: "System from administration by NeoTech",
 };
 
 export default function RootLayout({ children }) {
   return (
     
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthPorvider>
-          <DashboardHeader />
-          {children}
-        </AuthPorvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AuthPorvider>
+            <DashboardHeader />
+            {children}
+          </AuthPorvider>
+        </ThemeProvider>
       </body>
     </html>
     
